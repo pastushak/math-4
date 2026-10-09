@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Многочлени: тренажер</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: зошит у клітинку — сторінка з полями, вкладки рівнів, картки-завдання в сітці */
+:root{
+  --paper:#f7f9fd; --grid:rgba(70,100,180,.07); --card:#ffffff; --fg:#1a1f2c; --muted:#5b6377;
+  --line:#d5dcea; --ink:#2440b3; --ink-soft:#e6ebfb; --margin:#e07a7a;
+  --ok:#1d8a4b; --ok-soft:#e3f4ea; --bad:#c03a2b; --bad-soft:#fbe8e5;
+  --sqA:#8fd19e; --sqB:#f5cd5b; --rect:#e9edf6; --hl:#5b7cf0;
+  --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#11151f; --grid:rgba(140,165,255,.06); --card:#1a2030; --fg:#e7eaf3; --muted:#9aa3ba;
+  --line:#2c3549; --ink:#93a8ff; --ink-soft:#232c48; --margin:#a35656;
+  --ok:#5fd08f; --ok-soft:#17342a; --bad:#ff8a7a; --bad-soft:#3a201e;
+  --sqA:#3f8a55; --sqB:#a8862a; --rect:#273049; --hl:#7f98ff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#11151f; --grid:rgba(140,165,255,.06); --card:#1a2030; --fg:#e7eaf3; --muted:#9aa3ba;
+  --line:#2c3549; --ink:#93a8ff; --ink-soft:#232c48; --margin:#a35656;
+  --ok:#5fd08f; --ok-soft:#17342a; --bad:#ff8a7a; --bad-soft:#3a201e;
+  --sqA:#3f8a55; --sqB:#a8862a; --rect:#273049; --hl:#7f98ff; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--fg);font:16px/1.5 var(--f-body);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:22px 22px;}
+.wrap{max-width:900px;margin:0 auto;padding-inline:16px;padding-block:20px 60px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between;
+  border-bottom:2px solid var(--margin);padding-bottom:14px}
+.eyebrow{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font:700 clamp(22px,4.5vw,32px)/1.15 var(--f-display);margin:4px 0 0;color:var(--ink);text-wrap:balance}
+.total{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px;text-align:right}
+.total b{font:700 22px var(--f-display);color:var(--fg)}
+.howto{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--muted)}
+.howto code{font-family:var(--f-mono);font-size:13px;background:var(--ink-soft);color:var(--fg);padding:1px 5px;border-radius:4px}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);margin:14px -16px 0;padding:8px 16px;
+  display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;border-bottom:1px solid var(--line)}
+nav button{flex:0 0 auto;font:600 14px var(--f-body);border:1px solid var(--line);background:var(--card);color:var(--fg);
+  padding:7px 12px;border-radius:999px;cursor:pointer;display:flex;gap:8px;align-items:center}
+nav button .cnt{font:500 12px var(--f-mono);color:var(--muted)}
+nav button[aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+nav button[aria-selected="true"] .cnt{color:var(--paper);opacity:.8}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+
+.tabhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:22px 0 4px}
+.tabhead h2{font:700 20px var(--f-display);margin:0}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;width:180px;max-width:100%}
+.bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.ghost{font:500 13px var(--f-body);background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 10px;cursor:pointer}
+.ghost:hover{color:var(--fg);border-color:var(--muted)}
+
+.group{margin-top:26px}
+.group h3{font:600 17px/1.35 var(--f-body);margin:0 0 10px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.group h3 .num{font:700 15px var(--f-display);color:var(--ink);min-width:1.4em}
+.src{font:600 11px var(--f-body);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+.items{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.items.wide{grid-template-columns:1fr}
+.item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.item.ok{border-color:var(--ok);background:linear-gradient(var(--ok-soft),var(--ok-soft)) padding-box}
+.item.bad{border-color:var(--bad)}
+.q{display:flex;gap:8px;align-items:baseline;font-size:17px;min-width:0;overflow-wrap:anywhere}
+.q .n{font:600 13px var(--f-mono);color:var(--muted);flex:0 0 auto}
+.math{font-family:"Times New Roman",Georgia,serif;font-size:19px}
+.math i{font-style:italic}
+.math sup{font-size:.68em}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px}
+.frac>span:first-child{border-bottom:1px solid currentColor;padding:0 4px}
+.row{display:flex;gap:6px}
+.row input{flex:1;min-width:0;font:15px var(--f-mono);padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--paper);color:var(--fg)}
+.row button,.btn{font:600 14px var(--f-body);padding:7px 12px;border-radius:7px;border:0;background:var(--ink);color:var(--paper);cursor:pointer;flex:0 0 auto}
+.pv{font-size:14px;color:var(--muted);min-height:0}
+.pv:empty{display:none}
+.fb{font-size:14px;line-height:1.4}
+.fb:empty{display:none}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.link{background:none;border:0;padding:0;color:var(--ink);font:500 13px var(--f-body);text-decoration:underline;cursor:pointer;align-self:flex-start}
+
+.match{display:grid;gap:8px}
+.match .mrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.match select{font:15px var(--f-body);padding:5px 8px;border-radius:7px;border:1px solid var(--line);background:var(--paper);color:var(--fg)}
+.choices{display:grid;gap:4px 18px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));padding:8px 10px;border-radius:8px;background:var(--ink-soft)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-family:"Times New Roman",Georgia,serif;font-size:19px;border:1px dashed var(--ink);background:var(--card);color:var(--fg);border-radius:8px;padding:4px 12px;cursor:pointer}
+.chip[disabled]{opacity:.35;cursor:default}
+.seq{min-height:40px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--paper)}
+.seq .math{padding:2px 6px}
+.seq .lt{color:var(--muted)}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
+.lab{display:grid;gap:18px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+@media (max-width:700px){.lab{grid-template-columns:1fr}}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:600 14px var(--f-body);border:0;background:var(--card);color:var(--fg);padding:7px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.ctrl{display:grid;gap:12px;margin-top:14px}
+.ctrl label{display:grid;grid-template-columns:2.2em 1fr 3.4em;gap:10px;align-items:center;font-variant-numeric:tabular-nums}
+.ctrl label i{font:italic 20px "Times New Roman",serif}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.eq{font-family:"Times New Roman",Georgia,serif;font-size:19px;line-height:1.7;margin-top:14px}
+.eq .big{font-size:22px;color:var(--ink)}
+.note{font-size:14px;color:var(--muted);margin-top:10px}
+svg text{font-family:"Times New Roman",Georgia,serif}
+.svgbox{width:100%;overflow-x:auto}
+.task{font-size:16px;max-width:65ch}
+.sol{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--ink-soft);font-size:15px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Алгебра · Тема 2 · Урок 4</div>
+      <h1>Многочлени та розклад на множники</h1>
+    </div>
+    <div class="total">виконано<br><b id="tot">0</b> з <span id="totN">0</span></div>
+  </header>
+  <div class="howto">
+    Як вводити: степінь — <code>x^2</code> або <code>x²</code>; знак множення можна не писати: <code>3x(x-2)</code>; десятковий дріб — через кому: <code>0,5</code>; кілька коренів — через крапку з комою: <code>0; 25</code>. Українські літери х, у, а, с теж розпізнаються.
+  </div>
+  <nav id="tabs" role="tablist"></nav>
+  <main id="view"></main>
+</div>
+
+<script>
+/* ---------- парсер виразів ---------- */
+const SUP='⁰¹²³⁴⁵⁶⁷⁸⁹';
+const CYR={'а':'a','с':'c','е':'e','о':'o','р':'p','х':'x','у':'y','к':'k','м':'m','т':'t','п':'n','в':'b','і':'i'};
+function norm(s){
+  s=String(s).toLowerCase().replace(/[−–—]/g,'-').replace(/[·×∙•]/g,'*').replace(/:/g,'/');
+  s=s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g,m=>'^'+[...m].map(c=>SUP.indexOf(c)).join(''));
+  s=[...s].map(c=>CYR[c]||c).join('');
+  return s.replace(/\s+/g,'');
+}
+function tokenize(s){
+  const t=[];let i=0;
+  while(i<s.length){
+    const c=s[i];
+    const m=s.slice(i).match(/^(\d+(?:[.,]\d+)?|[.,]\d+)/);
+    if(m){t.push({t:'n',v:parseFloat(m[0].replace(',','.'))});i+=m[0].length;continue}
+    if(/[a-z]/.test(c)){t.push({t:'v',v:c});i++;continue}
+    if('+-*/^()'.includes(c)){t.push({t:c});i++;continue}
+    throw new Error('Незрозумілий символ «'+c+'»');
+  }
+  return t;
+}
+function parse(src){
+  const t=tokenize(norm(src));let p=0;
+  if(!t.length) throw new Error('Порожня відповідь');
+  const peek=()=>t[p], eat=x=>{if(t[p]&&t[p].t===x){p++;return true}return false};
+  function expr(){let a=term();while(peek()&&(peek().t==='+'||peek().t==='-')){const o=t[p++].t;a={k:o,a,b:term()}}return a}
+  function term(){let a=unary();for(;;){const k=peek();if(!k)break;
+    if(k.t==='*'||k.t==='/'){p++;a={k:k.t,a,b:unary()}}
+    else if(k.t==='n'||k.t==='v'||k.t==='('){a={k:'*',a,b:pow()}}
+    else break}return a}
+  function unary(){if(eat('-'))return{k:'neg',a:unary()};if(eat('+'))return unary();return pow()}
+  function pow(){const b=atom();if(eat('^')){const e=eat('-')?{k:'neg',a:pow()}:pow();return{k:'^',a:b,b:e}}return b}
+  function atom(){const k=t[p];if(!k)throw new Error('Вираз обірвався');
+    if(k.t==='n'){p++;return{k:'n',v:k.v}}
+    if(k.t==='v'){p++;return{k:'v',n:k.v}}
+    if(k.t==='('){p++;const e=expr();if(!eat(')'))throw new Error('Не закрито дужку');return e}
+    throw new Error('Зайвий символ «'+k.t+'»')}
+  const r=expr();if(p<t.length)throw new Error(t[p].t===')'?'Зайва дужка «)»':'Зайвий символ «'+t[p].t+'»');return r;
+}
+function ev(n,e){switch(n.k){case'n':return n.v;case'v':return e[n.n];case'neg':return-ev(n.a,e);
+  case'+':return ev(n.a,e)+ev(n.b,e);case'-':return ev(n.a,e)-ev(n.b,e);case'*':return ev(n.a,e)*ev(n.b,e);
+  case'/':return ev(n.a,e)/ev(n.b,e);case'^':return Math.pow(ev(n.a,e),ev(n.b,e))}}
+function varsOf(n,s){if(n.k==='v')s.add(n.n);if(n.a)varsOf(n.a,s);if(n.b)varsOf(n.b,s);return s}
+function equiv(A,B){
+  const vs=varsOf(B,varsOf(A,new Set()));let good=0;
+  for(let k=0;k<14;k++){const env={};vs.forEach(v=>env[v]=(Math.random()<.5?-1:1)*(0.4+Math.random()*2.1));
+    const x=ev(A,env),y=ev(B,env);if(!isFinite(x)||!isFinite(y))continue;good++;
+    if(Math.abs(x-y)>1e-7*Math.max(1,Math.abs(x),Math.abs(y)))return false}
+  return good>=4;
+}
+function isProduct(n){while(n.k==='neg')n=n.a;
+  if(n.k==='*')return true;
+  if(n.k==='^')return !(n.a.k==='v'||n.a.k==='n');
+  return false}
+
+/* ---------- відображення ---------- */
+function fmt(s){let o='',prev='';
+  for(let i=0;i<s.length;i++){const c=s[i];if(c===' ')continue;
+    if(/[a-z]/.test(c)){o+='<i>'+c+'</i>'}
+    else if(c==='^'){let j=i+1,d='';while(j<s.length&&/\d/.test(s[j])){d+=s[j];j++}o+='<sup>'+d+'</sup>';i=j-1;prev='0';continue}
+    else if(c==='-'){o+=/[0-9a-z)]/.test(prev)?' − ':'−'}
+    else if(c==='+'){o+=' + '}
+    else if(c==='='){o+=' = '}
+    else if(c==='*'){o+=' · '}
+    else if(c==='.'){o+=','}
+    else if(c==='<'){o+='&lt;'}else if(c==='&'){o+='&amp;'}
+    else o+=c;
+    prev=c}
+  return o}
+const M=s=>'<span class="math">'+fmt(s)+'</span>';
+const num=v=>String(Math.round(v*10000)/10000).replace('.',',');
+
+/* ---------- завдання ---------- */
+const ex=(arr)=>arr.map(e=>({t:'expand',e}));
+const fc=(arr)=>arr.map(e=>({t:'factor',e}));
+const eq=(arr)=>arr.map(([q,ans,show])=>({t:'num',q,ans,show}));
+
+const TABS=[
+{id:'rep',name:'Повторення',groups:[
+  {n:'1',h:'Обчисліть',src:'ЗНО 2021',items:[{t:'num',html:'<span class="math"><span class="frac"><span>5<sup>4</sup> · 2<sup>4</sup></span><span>20<sup>3</sup></span></span></span>',ans:[1.25]}]},
+  {n:'2',h:'Якщо 2ᵃ = 3, то 4ᵃ⁺¹ = …',src:'ЗНО 2018',items:[{t:'num',html:'<span class="math">4<sup><i>a</i>+1</sup> =</span>',ans:[36]}]},
+  {n:'3',h:'Скоротіть дріб',src:'ЗНО 2017',items:[{t:'expr',html:'<span class="math"><span class="frac"><span>10<i>ab</i><sup>3</sup></span><span>5<i>a</i><sup>2</sup><i>b</i></span></span></span>',target:'10ab^3/(5a^2b)',forbid:/10|5/,hint:'Поділіть коефіцієнти та скоротіть однакові змінні. Відповідь запишіть як дріб: 2b^2/a'}]},
+  {n:'4',h:'Обчисліть добуток одночленів',src:'ЗНО 2016',items:[{t:'expr',e:'0.4x^2*5x^3',target:'0.4x^2*5x^3',forbid:/0[.,]4|\*|·|x.*x/,hint:'Запишіть одночлен у стандартному вигляді: коефіцієнт і одна змінна в степені.'}]},
+  {n:'5',h:'Запишіть числа у порядку зростання',src:'ЗНО 2012',items:[{t:'order',opts:{a:'2^15',b:'4^10',c:'10^5'},ans:['a','c','b']}]},
+  {n:'6',h:'Розкладіть вираз на множники',src:'ЗНО 2020',items:fc(['(x+y)^2-9x^2'])},
+  {n:'7',h:'Розв’яжіть рівняння',src:'ЗНО 2020',items:eq([['x^2=25x',[0,25]]])},
+]},
+{id:'geo',name:'Формули на рисунку',special:'geo'},
+{id:'A',name:'Рівень А',groups:[
+  {n:'1',h:'Розкрийте дужки та зведіть подібні доданки',items:ex(['5(x-4)','14(-3a-2c+2)','6(7-y)','(25+a+x)*5','(y-90)*5','2a-3(a+5)','-2(3x-6+2)','-4(-2x+12-5y)','17-2(5-4a)','-3(2x-3y-1)+6x-7y-5','5-2(-2x+3y-6)'])},
+  {n:'2',h:'Розкладіть многочлени на множники',items:fc(['4x-16','a^2-9','8a-16b','25-x^2','2m-6m^2','y^2-100','2a^2+a','16-b^2','3x^2-6x','p^2-64','5y-10y^3','49-x^2','-6n^2+12n','9a^2-b^2','9k-3k^3','16-4n^2','1-a^2','25-9a^2','9-b^2','49a^2-b^2'])},
+  {n:'3',h:'Розв’яжіть рівняння',items:eq([['3(x-5)+18=48',[15]],['(x-0.8)(x-1.2)-x^2=-0.04',[0.5]],['4-(2x-7)+x=11',[0]],['(3-4x)-(2-3x)=5',[-4]],['3x-5+x+x=10',[3]],['9+(2x+5)(2x-3)=4x(x-1)',[0.75]],['-4(3x-1)+2(3x-6)=-8',[0]],['3y(y-2)+4-3y^2=-5(y-6)',[-26]]])},
+  {n:'4',h:'Знайдіть сторону квадрата, якщо при збільшенні її на 5 см отримаємо квадрат, площа якого на 95 см² більша за площу даного.',wide:1,items:[{t:'num',label:'Сторона, см',ans:[7],sol:'(x + 5)² − x² = 95 ⇒ 10x + 25 = 95 ⇒ x = 7.'}]},
+  {n:'5',h:'Знайдіть три послідовних натуральних числа, якщо подвоєний квадрат більшого з них на 79 більший за суму квадратів двох інших.',wide:1,items:[{t:'num',label:'Числа через «;»',ans:[12,13,14],sol:'2(n + 2)² − n² − (n + 1)² = 79 ⇒ 6n + 7 = 79 ⇒ n = 12.'}]},
+  {n:'6',h:'Розкладіть на множники',src:'ЗНО 2015',items:fc(['25x^2-1'])},
+  {n:'7',h:'Для кожного виразу (1–4) доберіть тотожно рівний йому вираз (А–Д)',src:'ЗНО 2012',wide:1,items:[{t:'match',rows:['(a-8)(a+8)','(a-8)^2','(a-4)(a^2+4a+16)','(a-4)(a-16)'],opts:{'А':'a^2-16a+64','Б':'a^2-64','В':'a^2-20a+64','Г':'a^3+64','Д':'a^3-64'},ans:['Б','А','Д','В']}]},
+]},
+{id:'B',name:'Рівень B',groups:[
+  {n:'1',h:'Розкрийте дужки та зведіть подібні доданки',items:ex(['-(2a-6+3b)-2a','5x-4y-7-(4y+4x)','-(2a-6+3b)+2a-b','-(5x+2y-10)-(4y-3x)','4x-(5x-2y+6)','2x^3-4x^2+x-(-x^3+3x^2+x)','7(4-a)-3(-3a+1)-25','(2x-y^3)+(-2x+y^3)-(2x-y^3)','(2a^2-4a+a^3)+(-a^3+2a^2+a)','(a^2-3b)+(-a^2-3b)-(-3b-a^2)','2x^2+(3x+x^2)-(3x-3+2x)','(a^2+4b-ab)+(-4b+a^2+ab)','(x^2+y)-(2x^2-y)-(-3x^2+y)','(a^2+9b-6a)-(a^2-4b+2.5b)','16b+(b-4)(3b-4)-16','2(3a-5)-3(6-2a)'])},
+  {n:'2',h:'Розв’яжіть рівняння',items:eq([['3x(x-2)-3x^2+12=0',[2]],['9+(2x+5)(2x-3)=4x(x-1)',[0.75]],['-6(2-3x)-7(2x+2)-5x=-8',[-18]],['(3x-2)(3x+2)-9(x^2+5)=-2x',[24.5]],['6x^2-(2x-3)(3x+2)=2',[-0.8]],['(2x-5)(2x+5)-3x=2x+4x^2-6',[-3.8]],['(10x+9)x-(5x-1)(2x+3)=8',[-1.25]],['(x-3)^2-2(x-4)=x^2-3',[2.5]],['3y(y+1)=7+(y-1)(3y-5)',[12/11],'12/11'],['(2-a)^2-(a-3)^2=0',[2.5]],['(2x-1)(3-x)=0',[0.5,3]],['1-x(2x-5)+2x(x+6)=1-x',[0]],['(x-3)(x+3)-(x^2-2x-4)=5-2x',[2.5]],['(x+2)^2-2(x+4)=x^2-3x',[0.8]]])},
+  {n:'3',h:'Розкладіть на множники',items:fc(['a^2-2a+1','(a+c)^2-x^2','4-4a+a^2','a^4b^2c^2-81m^4','a^2-6a+9','(a+b-c)^2-4','16-8b+b^2','(1-x^2)^2-4x^2','64-16a+a^2','(2n+3)^2-(n-1)^2','16a^2-81c^2','4(x-y)^2-(x+y)^2','a^2-c^2x^2','64a^4-25x^2','0.01-x^2','36k^2m-25p^2my^8','0.25z^2-y^4','-a^2+36','x^6-9'])},
+  {n:'4',h:'Якщо сторону квадрата зменшити на 8 см, то отримаємо квадрат, площа якого на 352 см² менша від площі даного. Знайдіть сторону даного квадрата.',wide:1,items:[{t:'num',label:'Сторона, см',ans:[26],sol:'x² − (x − 8)² = 352 ⇒ 16x − 64 = 352 ⇒ x = 26.'}]},
+  {n:'5',h:'Знайдіть чотири послідовних натуральних числа, якщо сума квадратів другого й четвертого з них на 82 більша за суму квадратів першого й третього.',wide:1,items:[{t:'num',label:'Числа через «;»',ans:[19,20,21,22],sol:'(n + 1)² − n² + (n + 3)² − (n + 2)² = 82 ⇒ 4n + 6 = 82 ⇒ n = 19.'}]},
+  {n:'6',h:'Квадрат зі стороною a, у ньому вирізано квадрат зі стороною b. Знайдіть площу заштрихованої фігури при a = 7,4 см, b = 2,6 см.',wide:1,items:[{t:'num',label:'Площа, см²',ans:[48],sol:'S = a² − b² = (a − b)(a + b) = 4,8 · 10 = 48 см².'}]},
+  {n:'7',h:'Якщо x² − y² = 7 і 3x + 3y = 63, то x − y = …',src:'ЗНО 2018',items:[{t:'num',label:'x − y',ans:[1/3],show:'1/3',sol:'x + y = 21, тому x − y = 7 : 21 = 1/3.'}]},
+  {n:'8',h:'Обчисліть 1001² − 999²',src:'ЗНО 2010',items:[{t:'num',label:'Значення',ans:[4000],sol:'(1001 − 999)(1001 + 999) = 2 · 2000 = 4000.'}]},
+]},
+{id:'C',name:'Рівень C',groups:[
+  {n:'1',h:'Розкрийте дужки та зведіть подібні доданки',items:ex(['-7ab+(a+5b)(2a-3b)','7ab-(a+5b)(2a-3b)','(7x+3)(2x-1)-14x^2','(7x-3)(2x-1)+14x^2','(2a+4)(1-3a)+10a','(2a-4)(1+3a)-10a','(x-4)(x-2)-(x-1)(x-3)','(x-4)(x+2)-(x-1)(x+3)','(a-4)(a-2)-(a-2)(a-3)','(a+4)(a-2)-(a+2)(a-3)','(6x-1)(6x+1)-(12x-5)(3x+1)','(6x+1)(6x-1)-(12x+5)(3x-1)','3x(2x-3)-(2x+3)(4x-5)','-3x(2x+3)-(2x-3)(4x+5)','b^4-(b^2-2)(2+b^2)','b^4-(-b^2+2)(2+b^2)','(5+2x)(2x+5)-(3x+5)(5-3x)','(5-2x)(2x+5)-(3x-5)(5-3x)','(x-y)(x-y)-(x^2+y^2)','(x-y)(x+y)-(x^2-y^2)','(x-4)(x^2+3x+6)-x^2(x-1)','(x+4)(x^2-3x-6)-x^2(x+1)','(x-5)(x+6)-x(x+1)','(x+5)(x-6)-x(x-1)'])},
+  {n:'2',h:'Розв’яжіть рівняння (корені — через «;»)',items:eq([['(x+3)(4-2x)=0',[-3,2]],['5x^2=20x',[0,4]],['(2x-1)(3-x)=0',[0.5,3]],['7x^2=4x',[0,4/7],'0; 4/7'],['(x+5)(2-x)(3+x)=0',[-5,2,-3]],['2x-2x^4=0',[0,1]],['y^2-7y=0',[0,7]],['5x^3-45x=0',[0,3,-3]],['4x^2-5x=0',[0,1.25]],['3x^5+24x^2=0',[0,-2]]])},
+  {n:'3',h:'Розкладіть на множники',items:fc(['a^6-64','xy-y+x-1','8-x^3','ks+k-s-1','64+a^3','xy^2-x+y^2-1','1-b^3','a^2+a-ab-b','x^6+8','ab+bc+ca+c^2','a^6-c^3','2x-yx+2y-y^2','-x^3+125','x-y+(x-y)^2','-a^3-b^6','10ax-5bx+2ay-by','ab+a+b+1','3x^2-3xy+3y^2-3xy','mn+m+n+1','-mn-km+ak+an'])},
+  {n:'4',h:'Різниця квадратів двох двоцифрових чисел, записаних одними й тими самими цифрами, дорівнює 693. Знайдіть ці числа.',wide:1,items:[{t:'num',label:'Два числа через «;»',ans:[43,34],sol:'(10a + b)² − (10b + a)² = 99(a² − b²) = 693 ⇒ (a − b)(a + b) = 7 ⇒ a = 4, b = 3.'}]},
+  {n:'5',h:'Доведіть, що коли остача при діленні натурального числа на 16 дорівнює 4, то квадрат цього числа ділиться без остачі на 16.',wide:1,items:[{t:'proof',sol:'n = 16k + 4, тоді n² = 256k² + 128k + 16 = 16(16k² + 8k + 1) — ділиться на 16.'}]},
+  {n:'6',h:'Доведіть, що коли остача при діленні натурального числа на 25 дорівнює 5, то квадрат цього числа кратний 25.',wide:1,items:[{t:'proof',sol:'n = 25k + 5, тоді n² = 625k² + 250k + 25 = 25(25k² + 10k + 1) — кратне 25.'}]},
+  {n:'7',h:'Розкладіть на множники',src:'ЗНО 2016',items:fc(['(a-1)^2-(b-1)^2'])},
+  {n:'8',h:'Розкладіть многочлен на множники',src:'ЗНО 2006',items:fc(['x^4+x^3-x-1'])},
+  {n:'9',h:'Знайдіть значення виразу |y − 2x|, якщо 4x² − 4xy + y² = 9/4',src:'ЗНО 2013',items:[{t:'num',label:'|y − 2x|',ans:[1.5],sol:'4x² − 4xy + y² = (y − 2x)² = 9/4, тому |y − 2x| = 3/2 = 1,5.'}]},
+]},
+{id:'room',name:'Задача про кабінети',special:'room'},
+];
+
+/* ---------- стан ---------- */
+const KEY='poly-trainer-10-2-4';
+let ST={};try{ST=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){ST={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(ST))}catch(e){}}
+const ROOM_ITEMS=[{t:'num',label:'Ціле значення x, м',ans:[3],id:'room-x'},{t:'num',label:'Мінімальна площа, м²',ans:[63],id:'room-s'}];
+function itemsOf(tab){if(tab.id==='room')return ROOM_ITEMS;if(!tab.groups)return[];return tab.groups.flatMap(g=>g.items).filter(i=>i.t!=='proof')}
+TABS.forEach(tab=>{(tab.groups||[]).forEach((g,gi)=>g.items.forEach((it,ii)=>{it.id=tab.id+'-'+gi+'-'+ii}))});
+
+let cur='rep';try{cur=localStorage.getItem(KEY+'-tab')||'rep'}catch(e){}
+if(!TABS.find(t=>t.id===cur))cur='rep';
+
+function counts(tab){const its=itemsOf(tab);return{ok:its.filter(i=>ST[i.id]&&ST[i.id].s==='ok').length,n:its.length}}
+function renderTabs(){
+  const nav=document.getElementById('tabs');nav.innerHTML='';
+  let T=0,N=0;
+  TABS.forEach(tab=>{const c=counts(tab);T+=c.ok;N+=c.n;
+    const b=document.createElement('button');b.setAttribute('role','tab');b.setAttribute('aria-selected',tab.id===cur);
+    b.innerHTML=tab.name+(c.n?' <span class="cnt">'+c.ok+'/'+c.n+'</span>':'');
+    b.onclick=()=>{cur=tab.id;try{localStorage.setItem(KEY+'-tab',cur)}catch(e){}render();window.scrollTo({top:0})};
+    nav.appendChild(b)});
+  document.getElementById('tot').textContent=T;document.getElementById('totN').textContent=N;
+  const bar=document.querySelector('.bar i');if(bar){const c=counts(TABS.find(t=>t.id===cur));bar.style.width=(c.n?100*c.ok/c.n:0)+'%'}
+}
+
+/* ---------- перевірка ---------- */
+function parseList(s){return s.split(/[;]+/).map(x=>x.trim()).filter(Boolean).map(x=>{const v=ev(parse(x),{});if(!isFinite(v))throw new Error('Не вдалося прочитати число');return v})}
+function check(it,val){
+  try{
+    if(it.t==='num'){
+      const got=parseList(val);const ans=it.ans.slice();
+      if(got.length!==ans.length)return{s:'bad',m:ans.length>1?'Кількість чисел не та: очікується '+ans.length+'.':'Тут має бути одне число.'};
+      const left=ans.slice();for(const g of got){const k=left.findIndex(a=>Math.abs(a-g)<0.002);if(k<0)return{s:'bad',m:'Неправильно. Перевірте обчислення.'};left.splice(k,1)}
+      return{s:'ok',m:'Правильно!'};
+    }
+    const A=parse(val);
+    if(it.t==='expand'){const B=parse(it.e);
+      if(!equiv(A,B))return{s:'bad',m:'Вираз не дорівнює даному. Перевірте знаки під час розкриття дужок.'};
+      if(norm(val).includes('('))return{s:'bad',m:'Значення правильне, але дужки ще залишились. Розкрийте їх до кінця.'};
+      return{s:'ok',m:'Правильно!'}}
+    if(it.t==='factor'){const B=parse(it.e);
+      if(!equiv(A,B))return{s:'bad',m:'Добуток не дорівнює даному многочлену. Перемножте множники для перевірки.'};
+      if(!isProduct(A))return{s:'bad',m:'Вираз рівний, але це ще не добуток. Подайте його у вигляді добутку множників.'};
+      return{s:'ok',m:'Правильно!'}}
+    if(it.t==='expr'){const B=parse(it.target);
+      if(!equiv(A,B))return{s:'bad',m:'Неправильно. '+(it.hint||'')};
+      if(it.forbid&&it.forbid.test(norm(val)))return{s:'bad',m:'Значення рівне, але вираз не спрощено до кінця.'};
+      return{s:'ok',m:'Правильно!'}}
+  }catch(e){return{s:'bad',m:e.message}}
+}
+
+/* ---------- побудова завдань ---------- */
+function h(tag,attrs,html){const e=document.createElement(tag);if(attrs)for(const k in attrs){if(k==='class')e.className=attrs[k];else e.setAttribute(k,attrs[k])}if(html!=null)e.innerHTML=html;return e}
+function setStatus(box,fb,res){box.classList.remove('ok','bad');if(res){box.classList.add(res.s);fb.className='fb '+res.s;fb.textContent=res.m}else{fb.className='fb';fb.textContent=''}}
+
+function buildItem(it,idx){
+  const box=h('div',{class:'item'});
+  const n=idx!=null?'<span class="n">'+(idx+1)+')</span>':'';
+  if(it.t==='expand'||it.t==='factor'||it.t==='num'||it.t==='expr'){
+    let q='';
+    if(it.html)q=it.html;else if(it.e)q=M(it.e);else if(it.q)q=M(it.q);else if(it.label)q='<span>'+it.label+'</span>';
+    box.appendChild(h('div',{class:'q'},n+q));
+    const row=h('div',{class:'row'});
+    const inp=h('input',{id:'in-'+it.id,autocomplete:'off',autocapitalize:'off',spellcheck:'false',inputmode:it.t==='num'?'text':'text',
+      placeholder:it.t==='num'?(it.label&&it.q?it.label:'відповідь'):(it.t==='factor'?'добуток множників':'вираз без дужок')});
+    if(it.t==='expr')inp.placeholder='спрощений вираз';
+    const btn=h('button',{type:'button'},'Перевірити');
+    row.append(inp,btn);box.appendChild(row);
+    const pv=h('div',{class:'pv'});const fb=h('div',{class:'fb'});box.append(pv,fb);
+    let fails=0;const extra=h('div');box.appendChild(extra);
+    const showPv=()=>{const v=inp.value.trim();if(!v||it.t==='num'){pv.innerHTML='';return}try{pv.innerHTML='= '+M(norm(v))}catch(e){pv.innerHTML=''}};
+    inp.addEventListener('input',showPv);
+    const go=()=>{if(!inp.value.trim())return;const r=check(it,inp.value);setStatus(box,fb,r);ST[it.id]={v:inp.value,s:r.s};save();renderTabs();
+      if(r.s==='bad')fails++;
+      extra.innerHTML='';
+      if((it.sol)&&(r.s==='ok'||fails>=2)){const l=h('button',{class:'link',type:'button'},'Показати розв’язання');l.onclick=()=>{l.replaceWith(h('div',{class:'sol'},it.sol))};extra.appendChild(l)}
+      else if(it.t==='num'&&fails>=2&&r.s!=='ok'){const l=h('button',{class:'link',type:'button'},'Показати відповідь');l.onclick=()=>{l.replaceWith(h('div',{class:'sol'},'Відповідь: '+(it.show||it.ans.map(num).join('; '))))};extra.appendChild(l)}
+    };
+    btn.onclick=go;inp.addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+    if(ST[it.id]){inp.value=ST[it.id].v||'';showPv();const r=check(it,inp.value);setStatus(box,fb,r)}
+    return box;
+  }
+  if(it.t==='match'){
+    const ch=h('div',{class:'choices'});Object.entries(it.opts).forEach(([k,v])=>ch.appendChild(h('div',null,'<b>'+k+'</b>&nbsp; '+M(v))));
+    const wrap=h('div',{class:'match'});const sels=[];
+    it.rows.forEach((r,i)=>{const row=h('div',{class:'mrow'});row.innerHTML='<b>'+(i+1)+'</b> '+M(r)+' &nbsp;→';
+      const s=h('select',{id:'sel-'+it.id+'-'+i});s.innerHTML='<option value="">—</option>'+Object.keys(it.opts).map(k=>'<option>'+k+'</option>').join('');
+      row.appendChild(s);wrap.appendChild(row);sels.push(s)});
+    const btn=h('button',{class:'btn',type:'button'},'Перевірити');const fb=h('div',{class:'fb'});
+    box.append(ch,wrap,btn,fb);btn.style.alignSelf='flex-start';
+    const go=(silent)=>{const v=sels.map(s=>s.value);const wrong=v.map((x,i)=>x===it.ans[i]?0:1).reduce((a,b)=>a+b,0);
+      const r=wrong?{s:'bad',m:'Неправильних відповідностей: '+wrong+'. Розкрийте дужки у кожному виразі.'}:{s:'ok',m:'Усі відповідності правильні!'};
+      setStatus(box,fb,r);ST[it.id]={v,s:r.s};save();if(!silent)renderTabs()};
+    btn.onclick=()=>go();
+    if(ST[it.id]){ST[it.id].v.forEach((x,i)=>sels[i].value=x);go(true)}
+    return box;
+  }
+  if(it.t==='order'){
+    let seq=[];const chips=h('div',{class:'chips'});const out=h('div',{class:'seq'});const fb=h('div',{class:'fb'});
+    const row=h('div',{class:'row'});const btn=h('button',{type:'button'},'Перевірити');const rs=h('button',{class:'ghost',type:'button'},'Скинути');row.append(btn,rs);
+    const draw=()=>{chips.innerHTML='';Object.entries(it.opts).forEach(([k,v])=>{const c=h('button',{class:'chip',type:'button'},fmt(v));if(seq.includes(k))c.disabled=true;c.onclick=()=>{seq.push(k);draw()};chips.appendChild(c)});
+      out.innerHTML=seq.length?seq.map(k=>M(it.opts[k])).join('<span class="lt">&lt;</span>'):'<span class="lt">Натискайте числа від найменшого до найбільшого</span>'};
+    btn.onclick=()=>{if(seq.length<3)return;const r=seq.join()===it.ans.join()?{s:'ok',m:'Правильно! Порівняйте: 2¹⁵ = 32 768, 10⁵ = 100 000, 4¹⁰ = 2²⁰ = 1 048 576.'}:{s:'bad',m:'Неправильно. Підказка: 4¹⁰ = 2²⁰, а 10⁵ = 100 000.'};setStatus(box,fb,r);ST[it.id]={v:seq,s:r.s};save();renderTabs()};
+    rs.onclick=()=>{seq=[];draw();setStatus(box,fb,null)};
+    if(ST[it.id]){seq=ST[it.id].v.slice()}
+    draw();box.append(chips,out,row,fb);
+    if(ST[it.id]&&seq.length===3)btn.onclick();
+    return box;
+  }
+  if(it.t==='proof'){
+    box.appendChild(h('div',{class:'q'},'<span>Запишіть доведення в зошиті, потім звірте.</span>'));
+    const l=h('button',{class:'link',type:'button'},'Показати доведення');l.onclick=()=>l.replaceWith(h('div',{class:'sol'},it.sol));box.appendChild(l);return box;
+  }
+}
+
+function renderGroups(tab,view){
+  tab.groups.forEach(g=>{
+    const sec=h('section',{class:'group'});
+    sec.appendChild(h('h3',null,'<span class="num">'+g.n+'.</span><span>'+g.h+'</span>'+(g.src?'<span class="src">'+g.src+'</span>':'')));
+    const box=h('div',{class:'items'+(g.wide||g.items[0].t==='order'?' wide':'')});
+    const many=g.items.length>1;
+    g.items.forEach((it,i)=>box.appendChild(buildItem(it,many?i:null)));
+    sec.appendChild(box);view.appendChild(sec)});
+}
+
+function resetTab(tab){itemsOf(tab).forEach(i=>delete ST[i.id]);save();render()}
+
+/* ---------- Формули на рисунку ---------- */
+function renderGeo(view){
+  const p=h('div',{class:'panel'});
+  p.innerHTML=`<div class="seg" role="group"><button type="button" data-m="sum" aria-pressed="true">Квадрат суми</button><button type="button" data-m="diff" aria-pressed="false">Квадрат різниці</button></div>
+  <div class="lab"><div class="svgbox" id="geoSvg"></div>
+  <div><div class="ctrl"><label for="ga"><i>a</i><input type="range" id="ga" min="1" max="10" step="0.5" value="5"><span id="gav"></span></label>
+  <label for="gb"><i>b</i><input type="range" id="gb" min="0.5" max="6" step="0.5" value="3"><span id="gbv"></span></label></div>
+  <div class="eq" id="geoEq"></div><div class="note" id="geoNote"></div></div></div>`;
+  view.appendChild(p);
+  let mode='sum';
+  p.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;p.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));draw()});
+  const ga=p.querySelector('#ga'),gb=p.querySelector('#gb');ga.oninput=draw;gb.oninput=draw;
+  function lbl(x,y,w,hh,t){return (w>34&&hh>22)?`<text x="${x+w/2}" y="${y+hh/2}" text-anchor="middle" dominant-baseline="middle" font-size="${Math.min(18,w/4+6)}" fill="var(--fg)">${t}</text>`:''}
+  function draw(){
+    let a=+ga.value,b=+gb.value;
+    if(mode==='diff'&&b>=a){b=Math.max(0.5,a-0.5);gb.value=b}
+    p.querySelector('#gav').textContent=num(a);p.querySelector('#gbv').textContent=num(b);
+    const X=34,Y=34,S=270;let s='';
+    if(mode==='sum'){const k=S/(a+b),A=a*k,B=b*k;
+      s+=`<rect x="${X}" y="${Y}" width="${A}" height="${A}" fill="var(--sqA)"/>`+lbl(X,Y,A,A,'a² = '+num(a*a));
+      s+=`<rect x="${X+A}" y="${Y}" width="${B}" height="${A}" fill="var(--rect)"/>`+lbl(X+A,Y,B,A,'ab');
+      s+=`<rect x="${X}" y="${Y+A}" width="${A}" height="${B}" fill="var(--rect)"/>`+lbl(X,Y+A,A,B,'ab = '+num(a*b));
+      s+=`<rect x="${X+A}" y="${Y+A}" width="${B}" height="${B}" fill="var(--sqB)"/>`+lbl(X+A,Y+A,B,B,'b²');
+      s+=`<rect x="${X}" y="${Y}" width="${S}" height="${S}" fill="none" stroke="var(--fg)" stroke-width="1.5"/>`;
+      s+=`<line x1="${X+A}" y1="${Y}" x2="${X+A}" y2="${Y+S}" stroke="var(--fg)" stroke-width="1"/><line x1="${X}" y1="${Y+A}" x2="${X+S}" y2="${Y+A}" stroke="var(--fg)" stroke-width="1"/>`;
+      s+=`<text x="${X+A/2}" y="${Y-10}" text-anchor="middle" font-size="17" font-style="italic" fill="var(--muted)">a</text><text x="${X+A+B/2}" y="${Y-10}" text-anchor="middle" font-size="17" font-style="italic" fill="var(--muted)">b</text>`;
+      s+=`<text x="${X-12}" y="${Y+A/2}" text-anchor="middle" font-size="17" font-style="italic" fill="var(--muted)">a</text><text x="${X-12}" y="${Y+A+B/2}" text-anchor="middle" font-size="17" font-style="italic" fill="var(--muted)">b</text>`;
+      p.querySelector('#geoEq').innerHTML=`<div class="big">(<i>a</i> + <i>b</i>)<sup>2</sup> = <i>a</i><sup>2</sup> + 2<i>ab</i> + <i>b</i><sup>2</sup></div>
+        (${num(a)} + ${num(b)})<sup>2</sup> = ${num((a+b)**2)}<br>${num(a*a)} + 2 · ${num(a*b)} + ${num(b*b)} = ${num(a*a+2*a*b+b*b)}`;
+      p.querySelector('#geoNote').textContent='Великий квадрат складається з двох квадратів (a² і b²) та двох рівних прямокутників площею ab.';
+    }else{const k=S/a,A=a*k,B=b*k,D=A-B;
+      s+=`<rect x="${X}" y="${Y}" width="${A}" height="${A}" fill="var(--rect)"/>`;
+      s+=`<rect x="${X}" y="${Y}" width="${D}" height="${D}" fill="var(--sqA)"/>`+lbl(X,Y,D,D,'(a − b)² = '+num((a-b)**2));
+      s+=`<rect x="${X+D}" y="${Y}" width="${B}" height="${A}" fill="var(--hl)" fill-opacity=".22"/>`;
+      s+=`<rect x="${X}" y="${Y+D}" width="${A}" height="${B}" fill="var(--hl)" fill-opacity=".22"/>`;
+      s+=`<rect x="${X+D}" y="${Y+D}" width="${B}" height="${B}" fill="var(--sqB)"/>`+lbl(X+D,Y+D,B,B,'b²');
+      s+=(B>30?`<text x="${X+D+B/2}" y="${Y+D/2}" text-anchor="middle" font-size="16" fill="var(--fg)">ab</text>`:'')+(B>22?`<text x="${X+D/2}" y="${Y+D+B/2}" text-anchor="middle" dominant-baseline="middle" font-size="16" fill="var(--fg)">ab</text>`:'');
+      s+=`<rect x="${X}" y="${Y}" width="${S}" height="${S}" fill="none" stroke="var(--fg)" stroke-width="1.5"/>`;
+      s+=`<line x1="${X+D}" y1="${Y}" x2="${X+D}" y2="${Y+S}" stroke="var(--fg)" stroke-dasharray="4 3"/><line x1="${X}" y1="${Y+D}" x2="${X+S}" y2="${Y+D}" stroke="var(--fg)" stroke-dasharray="4 3"/>`;
+      s+=`<text x="${X+S/2}" y="${Y-10}" text-anchor="middle" font-size="17" font-style="italic" fill="var(--muted)">a</text><text x="${X+D+B/2}" y="${Y+S+20}" text-anchor="middle" font-size="17" font-style="italic" fill="var(--muted)">b</text>`;
+      s+=`<text x="${X-12}" y="${Y+S/2}" text-anchor="middle" font-size="17" font-style="italic" fill="var(--muted)">a</text>`;
+      p.querySelector('#geoEq').innerHTML=`<div class="big">(<i>a</i> − <i>b</i>)<sup>2</sup> = <i>a</i><sup>2</sup> − 2<i>ab</i> + <i>b</i><sup>2</sup></div>
+        (${num(a)} − ${num(b)})<sup>2</sup> = ${num((a-b)**2)}<br>${num(a*a)} − 2 · ${num(a*b)} + ${num(b*b)} = ${num(a*a-2*a*b+b*b)}`;
+      p.querySelector('#geoNote').textContent='Від квадрата a² відрізаємо дві смуги площею ab. Кутовий квадрат b² при цьому відрізали двічі, тому його площу додаємо назад.';
+    }
+    p.querySelector('#geoSvg').innerHTML=`<svg viewBox="0 0 330 330" width="100%" style="max-width:420px" role="img" aria-label="Геометрична ілюстрація формули">${s}</svg>`;
+  }
+  draw();
+  const g=h('section',{class:'group'});g.innerHTML='<h3><span class="num">?</span><span>Підніміть до квадрата за допомогою формули</span></h3>';
+  const items=h('div',{class:'items'});
+  [['(2x-3y)^2'],['(a+5)^2'],['(3m-1)^2'],['(x+2y)^2']].forEach(([e],i)=>{const it={t:'expand',e,id:'geo-'+i};items.appendChild(buildItem(it,i))});
+  g.appendChild(items);view.appendChild(g);
+}
+
+/* ---------- Задача про кабінети ---------- */
+function renderRoom(view){
+  const p=h('div',{class:'panel'});
+  p.innerHTML=`<p class="task" style="margin-top:0">У школі вирішили об’єднати два кабінети для створення сучасного мультифункціонального простору. Перший кабінет має розміри 10 м на 6 м, а другий — <i>x</i> м на (<i>x</i> − 2) м. Стіну між кабінетами зносять. При якому цілому значенні <i>x</i> площа простору буде мінімальною? Обчисліть мінімальне значення площі.</p>
+  <div class="ctrl"><label for="rx"><i>x</i><input type="range" id="rx" min="3" max="12" step="1" value="6"><span id="rxv"></span></label></div>
+  <div class="eq" id="rEq"></div>
+  <div class="svgbox" id="rPlan"></div>
+  <div class="svgbox" id="rChart" style="margin-top:8px"></div>
+  <div class="note">Порухайте повзунок і стежте, як змінюється площа. Чому повзунок починається з 3?</div>`;
+  view.appendChild(p);
+  const rx=p.querySelector('#rx');rx.oninput=draw;
+  function draw(){const x=+rx.value,w2=x,h2=x-2,S=60+x*(x-2);
+    p.querySelector('#rxv').textContent=x;
+    p.querySelector('#rEq').innerHTML=`<i>S</i> = 10 · 6 + <i>x</i>(<i>x</i> − 2) = 60 + ${x} · ${x-2} = <b>${S}</b> м²`;
+    const W=560,H=190,k=Math.min((W-60)/(10+w2),(H-40)/Math.max(6,h2));const x0=30,y0=10;
+    let s=`<rect x="${x0}" y="${y0}" width="${10*k}" height="${6*k}" fill="var(--sqA)" fill-opacity=".55" stroke="var(--fg)"/>`;
+    s+=`<rect x="${x0+10*k}" y="${y0}" width="${w2*k}" height="${h2*k}" fill="var(--sqB)" fill-opacity=".6" stroke="var(--fg)"/>`;
+    s+=`<line x1="${x0+10*k}" y1="${y0}" x2="${x0+10*k}" y2="${y0+Math.min(6,h2)*k}" stroke="var(--paper)" stroke-width="3"/><line x1="${x0+10*k}" y1="${y0}" x2="${x0+10*k}" y2="${y0+Math.min(6,h2)*k}" stroke="var(--bad)" stroke-width="2" stroke-dasharray="5 4"/>`;
+    s+=`<text x="${x0+5*k}" y="${y0+3*k}" text-anchor="middle" dominant-baseline="middle" font-size="16" fill="var(--fg)">10 × 6</text>`;
+    if(h2*k>20)s+=`<text x="${x0+10*k+w2*k/2}" y="${y0+h2*k/2}" text-anchor="middle" dominant-baseline="middle" font-size="16" fill="var(--fg)">${x} × ${x-2}</text>`;
+    else s+=`<text x="${x0+10*k+w2*k/2}" y="${y0+h2*k+16}" text-anchor="middle" font-size="15" fill="var(--fg)">${x} × ${x-2}</text>`;
+    p.querySelector('#rPlan').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:320px" role="img" aria-label="План кабінетів">${s}</svg>`;
+    // графік S(x)
+    const CW=560,CH=220,L=46,R=14,T=14,Bm=34,xmin=0,xmax=12,ymin=50,ymax=190;
+    const sx=v=>L+(v-xmin)/(xmax-xmin)*(CW-L-R),sy=v=>T+(ymax-v)/(ymax-ymin)*(CH-T-Bm);
+    let c='';for(let yv=60;yv<=180;yv+=40){c+=`<line x1="${L}" x2="${CW-R}" y1="${sy(yv)}" y2="${sy(yv)}" stroke="var(--line)"/><text x="${L-8}" y="${sy(yv)}" text-anchor="end" dominant-baseline="middle" font-size="13" fill="var(--muted)">${yv}</text>`}
+    for(let xv=0;xv<=12;xv+=2)c+=`<text x="${sx(xv)}" y="${CH-Bm+18}" text-anchor="middle" font-size="13" fill="var(--muted)">${xv}</text>`;
+    let pts=[];for(let v=0;v<=12.001;v+=0.1){const y=v*v-2*v+60;if(y<=ymax)pts.push(sx(v)+','+sy(y))}
+    c+=`<rect x="${L}" y="${T}" width="${sx(2)-L}" height="${CH-T-Bm}" fill="var(--bad)" fill-opacity=".08"/><text x="${(L+sx(2))/2}" y="${T+14}" text-anchor="middle" font-size="12" fill="var(--bad)">x − 2 ≤ 0</text>`;
+    c+=`<polyline points="${pts.join(' ')}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
+    c+=`<circle cx="${sx(1)}" cy="${sy(59)}" r="3.5" fill="none" stroke="var(--bad)" stroke-width="1.5"/><text x="${sx(1)}" y="${sy(59)+16}" text-anchor="middle" font-size="12" fill="var(--bad)">вершина (1; 59)</text>`;
+    for(let v=3;v<=12;v++){const y=v*v-2*v+60;if(y<=ymax)c+=`<circle cx="${sx(v)}" cy="${sy(y)}" r="${v===x?6:3}" fill="${v===x?'var(--ink)':'var(--card)'}" stroke="var(--ink)" stroke-width="1.5"/>`}
+    c+=`<text x="${CW-R}" y="${CH-4}" text-anchor="end" font-size="14" font-style="italic" fill="var(--muted)">x</text><text x="${L-8}" y="${T-2}" text-anchor="end" font-size="14" font-style="italic" fill="var(--muted)">S</text>`;
+    p.querySelector('#rChart').innerHTML=`<svg viewBox="0 0 ${CW} ${CH}" width="100%" style="min-width:320px" role="img" aria-label="Графік площі S(x)">${c}</svg>`;
+  }
+  draw();
+  const g=h('section',{class:'group'});g.innerHTML='<h3><span class="num">✎</span><span>Ваша відповідь</span></h3>';
+  const items=h('div',{class:'items'});ROOM_ITEMS.forEach(it=>items.appendChild(buildItem(it)));g.appendChild(items);
+  const l=h('button',{class:'link',type:'button'},'Показати розв’язання');l.style.marginTop='10px';
+  l.onclick=()=>l.replaceWith(h('div',{class:'sol'},'S(x) = 60 + x(x − 2) = x² − 2x + 60 = (x − 1)² + 59. Найменше значення квадратного тричлена досягається при x = 1, але тоді друга сторона x − 2 від’ємна, тому таке x не підходить. Сторони мають бути додатними: x − 2 > 0, тобто x > 2. На цьому проміжку площа зростає, отже найменше ціле x = 3, а S = 60 + 3 · 1 = 63 м².'));
+  g.appendChild(l);view.appendChild(g);
+}
+
+/* ---------- рендер ---------- */
+function render(){
+  const tab=TABS.find(t=>t.id===cur);const view=document.getElementById('view');view.innerHTML='';
+  const head=h('div',{class:'tabhead'});
+  head.innerHTML='<h2>'+tab.name+'</h2>';
+  const right=h('div');right.style.cssText='display:flex;gap:12px;align-items:center';
+  if(itemsOf(tab).length){right.innerHTML='<div class="bar"><i></i></div>';const rb=h('button',{class:'ghost',type:'button'},'Почати заново');
+    let armed=false;rb.onclick=()=>{if(!armed){armed=true;rb.textContent='Точно стерти відповіді?';setTimeout(()=>{armed=false;rb.textContent='Почати заново'},3000)}else resetTab(tab)};right.appendChild(rb)}
+  head.appendChild(right);view.appendChild(head);
+  if(tab.special==='geo')renderGeo(view);else if(tab.special==='room')renderRoom(view);else renderGroups(tab,view);
+  renderTabs();
+}
+render();
+</script>
+
+</body>
+</html>
